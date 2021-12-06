@@ -7,16 +7,18 @@
   (:nicknames :3dev)
   (:import/export :lisp3dev.base :lisp3dev.algebraic.core :lisp3dev.prolog)
   (:export
-   #:full-mode
+   #:use-reader
    )
   (:unexport
-   #:lisp3dev-base-header)
+   ;;#:lisp3dev-base-header
+   #:enable-reader)
   )
 
 (in-package :lisp3dev)
 
-(defmacro full-mode ()
-  '(lisp3dev.base:lisp3dev-base-header))
+(defmacro use-reader()
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (lisp3dev.base:enable-reader nil :ignores '(:lpar))))
 
 
 

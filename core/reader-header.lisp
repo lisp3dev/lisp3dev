@@ -43,20 +43,26 @@
   (register-optional-reader ident function-designator))
 
 
-(defun <j-header> (limitations)
+(defun <can-apply> (ident limitations ignores)
+  (and (or (null limitations)
+           (member ident limitations))
+       (not (member ident ignores))))
+
+(defun <enable-header> (limitations ignores)
   ;(print limitations)
   (let ((old-readtable *readtable*))
     (setf *readtable* (copy-readtable nil))
-    (when (or (null limitations) (member :annot limitations))
+    (when (<can-apply> :annot limitations ignores)
       (enable-annot-syntax))
     (dolist* ((ident . f) *extra-procedures-alist*)
       ;; DEBUG
-      (when (or (null limitations) (member ident limitations))
-        (funcall f)))
+             (when (<can-apply> ident limitations ignores)
+               ;(format t "reader: ~A enabled ~%" ident)
+               (funcall f)))
     old-readtable))
 
-(defun enable-reader(&optional limitations)
-  (<j-header> limitations))
+(defun enable-reader(&optional limitations &key ignores)
+  (<enable-header> limitations ignores))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ANNOTATION UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;
 

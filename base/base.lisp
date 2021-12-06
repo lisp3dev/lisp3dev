@@ -28,6 +28,7 @@
 (defmacro lisp3dev-base-header (&rest args)
   `(lisp3dev.core:lisp3dev-core-header ,@args))
 
+
 (defparameter *app-wired-p* t)
 
 (defun wired-p   ()      *app-wired-p*)

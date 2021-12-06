@@ -259,7 +259,7 @@
 
 (defun <register-primary-readers-for-lpar> ()
 
-  @select-reader (:embed)
+  @select-reader (:advanced)
   (set-macro-character
    #\(
    (lambda (stream char1)
