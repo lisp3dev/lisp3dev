@@ -15,7 +15,7 @@
   (FORMAT stream "(@p ~W ~W)" (SLOT-VALUE x 'fst) (SLOT-VALUE x 'snd)))
 
 (DEFUN XTUPLE-P (x) (TYPEP x 'XTUPLE))
-(DEFINE-COMPILER-MACRO XTUPLE-P (x) `(TYPEP ,x 'XTUPLE))
+'(DEFINE-COMPILER-MACRO XTUPLE-P (x) `(TYPEP ,x 'XTUPLE))
             
 (DEFUN XTUPLE (fst snd &OPTIONAL (class 'XTUPLE))
   (LET ((xtuple (MAKE-INSTANCE class)))
@@ -36,7 +36,7 @@
       (IF lisp-ident
         (XTUPLE a b lisp-ident)
         (XTUPLE a b 'P2)))
-    (XTUPLE a b)))
+    (XTUPLE a b 'P2)))
 
 ; (@p 'just# 3)
 ;(just# 3) ==> (xtuple* '|just#| 3)
@@ -46,11 +46,11 @@
 (DEFUN XTUPLE-FST (xtuple)  (SLOT-VALUE xtuple 'fst))
 (DEFUN XTUPLE-SND (xtuple)  (SLOT-VALUE xtuple 'snd))
 
-(DEFINE-COMPILER-MACRO XTUPLE-FST (xtuple)  `(SLOT-VALUE ,xtuple 'fst))
-(DEFINE-COMPILER-MACRO XTUPLE-SND (xtuple)  `(SLOT-VALUE ,xtuple 'snd))
+'(DEFINE-COMPILER-MACRO XTUPLE-FST (xtuple)  `(SLOT-VALUE ,xtuple 'fst))
+'(DEFINE-COMPILER-MACRO XTUPLE-SND (xtuple)  `(SLOT-VALUE ,xtuple 'snd))
 
 (DEFUN (SETF XTUPLE-FST) (val x)  (SETF (SLOT-VALUE x 'fst) val))
 (DEFUN (SETF XTUPLE-SND) (val x)  (SETF (SLOT-VALUE x 'snd) val))
-(DEFINE-COMPILER-MACRO (SETF XTUPLE-FST) (val x)  `(SETF (SLOT-VALUE ,x 'fst) ,val))
-(DEFINE-COMPILER-MACRO (SETF XTUPLE-SND) (val x)  `(SETF (SLOT-VALUE ,x 'snd) ,val))
+'(DEFINE-COMPILER-MACRO (SETF XTUPLE-FST) (val x)  `(SETF (SLOT-VALUE ,x 'fst) ,val))
+'(DEFINE-COMPILER-MACRO (SETF XTUPLE-SND) (val x)  `(SETF (SLOT-VALUE ,x 'snd) ,val))
 

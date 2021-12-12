@@ -3,11 +3,10 @@
 ;; Copyright (c) 2012-2021 junneko.net
 
 (defpackage :lisp3dev.core.init
-  (:use :cl)
+  (:use :cl :lisp3cfg)
   (:export
    #:define-package
-   #:export*
-   ))
+   #:export*))
 
 (in-package :lisp3dev.core.init)
 

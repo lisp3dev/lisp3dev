@@ -5,6 +5,8 @@
 (lisp3dev.core.init:define-package :lisp3dev.core.primary-annotations ()
   (:use :cl :lisp3dev.core.init :alexandria :anaphora :cl-annot :metabang-bind)
 
+  (:import/export :lisp3dev.core.global-configurations)
+
   (:export
    #:define-package ;; import from lisp3dev.core.init
    #:export* ;; import from lisp3dev.core.init

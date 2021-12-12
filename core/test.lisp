@@ -5,10 +5,10 @@
 (in-package :lisp3dev.core.test)
 
 ;; 真の場合テストを完全に無効化する (最優先フラグ)
-(defvar *ignore-testing* nil) 
+;;(defvar *ignore-testing* t) 
 
 ;; *ignore-testing*が偽の場合、このフラグが真であればテストを強制的に有効化する
-(defvar *force-testing* nil) 
+;;(defvar *force-testing* nil) 
 
 (defvar *<package-testing-table>* (make-hash-table :test 'equal))
 

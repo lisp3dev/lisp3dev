@@ -7,8 +7,8 @@
   (:use :cl :alexandria)
 
   (:export
-   #:*ignore-testing*
-   #:*force-testing* 
+   ;;#:*ignore-testing*
+   ;;#:*force-testing* 
    #:enable-testing #:disable-testing
    #:testing
 
