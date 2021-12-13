@@ -15,6 +15,9 @@
    #:applied #:applied* #:rapplied #:rapplied*
    #:applicate
 
+   ;; TODO [2021-12-13]
+   #:applied.. #:rapplied..
+
    #:defun.. #:lambda.. #:named-lambda.. #:flet.. #:labels..
    #:lambda-bind.. #:lambda/bind..
    
@@ -23,8 +26,8 @@
    #:unlift #:unliftable-p
    #:relift #:relifttable-p
    #:copy-data #:copy-data*
-   #:define-data
-   #:define-newtype
+   #:define-global-data
+   #:define-global-newtype
    #:define-local-data
    #:define-local-newtype
 

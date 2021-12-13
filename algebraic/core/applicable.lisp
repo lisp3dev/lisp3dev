@@ -225,13 +225,24 @@
 
 @inline
 (defun <pure> (f arity prescribed-arguments)
-  (assert (and 'pure (positive-integer-p arity)))
   (<<pure>> (ensure-function f) arity prescribed-arguments))
 
-(defun pure (f arity &rest prescribed-arguments)
-  (<pure> f arity prescribed-arguments))
+(defun applied.. (function-designator arity &rest prescribed-arguments)
+  (assert (and 'pure (positive-integer-p arity)))
+  (<pure> function-designator arity prescribed-arguments))
 
-(define-compiler-macro pure (f arity &rest prescribed-arguments)
+;; [2021-12-13] TODO 効率のよいものに
+
+(defun rapplied.. (function-designator arity &rest prescribed-arguments)
+  (assert (and 'pure (positive-integer-p arity)))
+  (let ((fn (ensure-function function-designator)))
+    (<pure> (lambda (&rest args)
+              (apply fn (nconc args prescribed-arguments)))
+            arity prescribed-arguments)))
+
+
+
+'(define-compiler-macro pure (f arity &rest prescribed-arguments)
   (cond ((non-negative-integer-p arity)
           `(applicable (applied ,f ,arity ,@prescribed-arguments)))
         (prescribed-arguments

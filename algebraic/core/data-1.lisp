@@ -321,7 +321,7 @@
     `(,def-op ,name (,name ,type))))
 
 (defmacro define-global-newtype (name type &key accessor)
-  (<define-newtype> 'define-data name type accessor))
+  (<define-newtype> 'define-global-data name type accessor))
 
 (defmacro define-local-newtype (name type &key accessor)
   (<define-newtype> 'define-local-data name type accessor))
