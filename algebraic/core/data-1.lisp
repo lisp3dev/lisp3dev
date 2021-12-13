@@ -170,7 +170,7 @@
   (do-unify decls
     (:EACH (:OR (:-> :type symbol)
                 (:APPEND ((:-> :type symbol))
-                         (:EACH+ (:OR (:-> :type symbol)
+                         (:EACH (:OR (:-> :type symbol)
                                       ((:-> :type symbol) (:-> :type symbol)))))))
     :on-failure (error "DEFINE-DATA: wrong declaration(s). ~D" decls))
   #{let (main
@@ -185,17 +185,19 @@
                              ))
                       ,@(nreverse main)
                       ',name))
-  (cond ((symbolp d)
-          (multiple-value-bind (q-ident q-tag) (<make-xi-ident> d local?)
-            (add `(defclass ,d ,(if superclass superclass '(DATATUPLE)) ())
-                 `(setf (get ',q-tag 'lisp3dev.algebraic.xdata::|%classdata%|) ',d)
-                 `(setf (get ',q-ident 'lisp3dev.algebraic.xdata::|%data_arity%|) 0)
-                 `(setf (get ',q-ident 'lisp3dev.algebraic.xdata::|%data_tag%|) ',q-tag)
-                 `(setf (get ',d 'lisp3dev.algebraic.xdata::|%data_arity%|) 0) ;;
-                 `(setf (get ',d 'lisp3dev.algebraic.xdata::|%data_tag%|) ',q-tag) ;;
-                 `(defun ,d () (memoized (xtuple ',q-tag nil ',d)))
-                 `(define-symbol-macro ,d (,d)))))
-        ((consp d)
+  (cond ((or (symbolp d)
+             (null (cdr d)))
+          (let ((d (ensure-car d)))
+            (multiple-value-bind (q-ident q-tag) (<make-xi-ident> d local?)
+              (add `(defclass ,d ,(if superclass superclass '(DATATUPLE)) ())
+                   `(setf (get ',q-tag 'lisp3dev.algebraic.xdata::|%classdata%|) ',d)
+                   `(setf (get ',q-ident 'lisp3dev.algebraic.xdata::|%data_arity%|) 0)
+                   `(setf (get ',q-ident 'lisp3dev.algebraic.xdata::|%data_tag%|) ',q-tag)
+                   `(setf (get ',d 'lisp3dev.algebraic.xdata::|%data_arity%|) 0) ;;
+                   `(setf (get ',d 'lisp3dev.algebraic.xdata::|%data_tag%|) ',q-tag) ;;
+                   `(defun ,d () (memoized (xtuple ',q-tag nil ',d)))
+                   `(define-symbol-macro ,d (,d))))))
+        (t ;; (consp d)
           #{bind ((c (first d))
                   (arity (length (cdr d)))
                   (single (eql 1 arity))
