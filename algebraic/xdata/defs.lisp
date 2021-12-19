@@ -5,18 +5,41 @@
 (in-package :lisp3dev.algebraic.xdata)
 
 
-(DEFCLASS XTUPLE ()
-  (fst
-   snd))
+(defclass xtuple ()
+  ((<fst> :allocation :class :initform nil)
+   (<fst-readonly> :allocation :class :initform t)
+   (<snd> :allocation :class :initform nil)
+   (<snd-readonly> :allocation :class :initform t)))
 
-(DEFCLASS P2 (XTUPLE) ())
+(defclass xdata (xtuple)
+  ((<snd> :allocation :instance :initarg <data>)
+   (<snd-readonly> :allocation :class :initform nil)))
 
-(DEFMETHOD PRINT-OBJECT ((x P2) stream)
-  (FORMAT stream "(@p ~W ~W)" (SLOT-VALUE x 'fst) (SLOT-VALUE x 'snd)))
+(defstruct xtypeinfo
+  class
+  arity
+  types
+  id
+  fp-ctor)
 
-(DEFUN XTUPLE-P (x) (TYPEP x 'XTUPLE))
-'(DEFINE-COMPILER-MACRO XTUPLE-P (x) `(TYPEP ,x 'XTUPLE))
-            
+(defun get-xtypeinfo (sym)
+  (get sym '<xtypeinfo>))
+
+
+
+(defun xtuple-p (x) (typep x 'xtuple))
+'(define-compiler-macro xtuple-p (x) `(typep ,x 'xtuple))
+
+(defun xdata-p (x) (typep x 'xdata))
+'(define-compiler-macro xdata (x) `(typep ,x 'xdata))
+
+(defun xfst (x)
+  (slot-value x '<fst>))
+
+(defun xsnd (x)
+  (slot-value x '<snd>))
+
+
 (DEFUN XTUPLE (fst snd &OPTIONAL (class 'XTUPLE))
   (LET ((xtuple (MAKE-INSTANCE class)))
     (SETF (SLOT-VALUE xtuple 'fst) fst
@@ -43,14 +66,14 @@
 ;(string-downcase "")
 ;(just# 
 
-(DEFUN XTUPLE-FST (xtuple)  (SLOT-VALUE xtuple 'fst))
-(DEFUN XTUPLE-SND (xtuple)  (SLOT-VALUE xtuple 'snd))
+'(DEFUN XTUPLE-FST (xtuple)  (SLOT-VALUE xtuple 'fst))
+'(DEFUN XTUPLE-SND (xtuple)  (SLOT-VALUE xtuple 'snd))
 
 '(DEFINE-COMPILER-MACRO XTUPLE-FST (xtuple)  `(SLOT-VALUE ,xtuple 'fst))
 '(DEFINE-COMPILER-MACRO XTUPLE-SND (xtuple)  `(SLOT-VALUE ,xtuple 'snd))
 
-(DEFUN (SETF XTUPLE-FST) (val x)  (SETF (SLOT-VALUE x 'fst) val))
-(DEFUN (SETF XTUPLE-SND) (val x)  (SETF (SLOT-VALUE x 'snd) val))
+'(DEFUN (SETF XTUPLE-FST) (val x)  (SETF (SLOT-VALUE x 'fst) val))
+'(DEFUN (SETF XTUPLE-SND) (val x)  (SETF (SLOT-VALUE x 'snd) val))
 '(DEFINE-COMPILER-MACRO (SETF XTUPLE-FST) (val x)  `(SETF (SLOT-VALUE ,x 'fst) ,val))
 '(DEFINE-COMPILER-MACRO (SETF XTUPLE-SND) (val x)  `(SETF (SLOT-VALUE ,x 'snd) ,val))
 

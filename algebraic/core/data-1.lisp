@@ -85,7 +85,7 @@
 ;;               (freplicate (1+ (- i cur-len)) #'gensym))))
 ;;   `(slot-value ,obj ',(nth i *private-ids-for-data*)))
 
-(defmacro <take> (x) `(xtuple-snd ,x))
+(defmacro <take> (x) `(xsnd ,x))
 
 @eval-when-compile
 (defmacro <defaccessor> (name op) 
@@ -130,7 +130,7 @@
          (nconcf *<accessor-ids>*
                  (let (tmp)
                    (dotimes (i (- n cur-len) (nreverse tmp))
-                     (let ((name (gensym "ACCESS")))
+                     (let ((name (gensym "A")))
                        (push name tmp)
                        (eval `(defmacro ,name (x)
                                `(svref (<take> ,x) ,',(+ cur-len i) ))))))))))))
@@ -151,20 +151,30 @@
               (intern (string-concat xi-base-name "#") q-pkg)))))
 
 
-(defclass DATATUPLE (XTUPLE) ())
-
-(defmethod print-object ((x DATATUPLE) stream)
-  (let* ((type (type-of x))
-         (arity (get type 'lisp3dev.algebraic.xdata::|%data_arity%|))
-         (data (xtuple-snd x)))
+;(defclass DATATUPLE (XTUPLE) ())
+(defmethod print-object ((x xdata) stream)
+  (let* ((class (type-of x))
+         (info (get-xtypeinfo class))
+         (arity (xtypeinfo-arity info))
+         (data (xsnd x)))
     (case arity
-      (0 (format stream "<~A>" type))
-      (1 (format stream "<~A ~A>" type data))
-      (t (format stream "(<~A>~{ ~A~})" type (coerce data 'list))))))
+      (0 (format stream "<~A>" class))
+      (1 (format stream "<~A ~A>" class data))
+      (t (format stream "(<~A>~{ ~A~})" class (coerce data 'list))))))
 
 
 (defun <error/deconstruct> (illegal-opt)
   (error "DECONSTRUCT: unknown output option: ~A" illegal-opt))
+
+
+(defun <parse-types> (decl)
+  (cond ((or (symbolp decl)
+             (null (cdr decl)))
+          nil)
+        ((dolist (x (cdr decl) nil)
+           (unless (eq t (ensure-car x))
+             (return t)))
+          (map 'simple-vector #'ensure-car (cdr decl)))))
 
 (defun <define-data> (name decls local?)
   (do-unify decls
@@ -174,13 +184,13 @@
                                       ((:-> :type symbol) (:-> :type symbol)))))))
     :on-failure (error "DEFINE-DATA: wrong declaration(s). ~D" decls))
   #{let (main
-         (superclass (unless (and (= 1 (length decls))
+         (superclass (unless (and (eql 1 (length decls))
                                   (eq name (ensure-car (car decls))))
                        (list name))))
   #{macrolet ((add (&rest xs) `(progn ,@(mapcar #/`(push ,_ main) xs))))
   #{dolist (d decls `(eval-when (:compile-toplevel :load-toplevel :execute)
                       ,@ (when superclass
-                           `((defclass ,name (DATATUPLE) ())
+                           `((defclass ,name (xdata) ())
                              (define-unification (,name t) `(typep ,this ',',name))
                              ))
                       ,@(nreverse main)
@@ -188,22 +198,24 @@
   (cond ((or (symbolp d)
              (null (cdr d)))
           (let ((d (ensure-car d)))
-            (multiple-value-bind (q-ident q-tag) (<make-xi-ident> d local?)
-              (add `(defclass ,d ,(if superclass superclass '(DATATUPLE)) ())
-                   `(setf (get ',q-tag 'lisp3dev.algebraic.xdata::|%classdata%|) ',d)
-                   `(setf (get ',q-ident 'lisp3dev.algebraic.xdata::|%data_arity%|) 0)
-                   `(setf (get ',q-ident 'lisp3dev.algebraic.xdata::|%data_tag%|) ',q-tag)
-                   `(setf (get ',d 'lisp3dev.algebraic.xdata::|%data_arity%|) 0) ;;
-                   `(setf (get ',d 'lisp3dev.algebraic.xdata::|%data_tag%|) ',q-tag) ;;
-                   `(defun ,d () (memoized (xtuple ',q-tag nil ',d)))
-                   `(define-symbol-macro ,d (,d))))))
+            (add `(let* ((typeinfo (get-xtypeinfo ',d ,local?))
+                         (class-id (xtypeinfo-id typeinfo)))
+                    (setf (xtypeinfo-arity typeinfo) 0
+                          (xtypeinfo-types typeinfo) nil)
+                    (defclass ,d (xdata) ((<fst> :allocation :class :initform class-id)))
+                    (defun ,d () (memoized (make-instance ',d '<data> nil)))
+                    (define-symbol-macro ,d (,d))))))
         (t ;; (consp d)
           #{bind ((c (first d))
                   (arity (length (cdr d)))
                   (single (eql 1 arity))
-                  (ids (get-accessor-ids arity))
-                  ((:values q-ident q-tag) (<make-xi-ident> c local?)))
-          (add `(defclass ,c ,(if superclass superclass '(DATATUPLE)) ()))
+                  (ids (get-accessor-ids arity)))
+          (add `(let* ((typeinfo (get-xtypeinfo ',c ,local?))
+                       (class-id (xtypeinfo-id typeinfo)))
+                  (setf (xtypeinfo-arity typeinfo) ,arity
+                        (xtypeinfo-types typeinfo) ',(<parse-types> d))
+                  (defclass ,c ,(if superclass superclass '(xdata))
+                    ((<fst> :allocation :class :initform class-id)))))
           (when (eq 1 arity)
             (add `(defmethod unliftable-p ((a ,c)) (declare (ignore a)) t)
                  `(defmethod unlift ((a ,c)) (,(car ids) a))
@@ -223,12 +235,12 @@
           (add `(defmethod deconstructable-p ((a ,c)) (declare (ignore a)) t)
                `(defmethod deconstruct ((a ,c) &optional (output :values))
                  ,(if (eq 1 arity) 
-                    `(let ((x (xtuple-snd a)))
+                    `(let ((x (xsnd a)))
                        (case output (:values x) (:list (list x)) (:vector (vector x))
                              (t (<error/deconstruct> output))))
                     (let ((refs (mapl (lambda (xs) (setf (car xs) `(svref sv ,(car xs))))
                                       (iota arity))))
-                      `(let ((sv (xtuple-snd a)))
+                      `(let ((sv (xsnd a)))
                          (declare (type simple-vector sv))
                          (case output (:values (values ,@refs)) (:list (list ,@refs)) (:vector (copy-seq sv))
                                (t (<error/deconstruct> output)))))))
@@ -238,11 +250,6 @@
                `(define-unification (,c t) `(typep ,this ',',c)
                  (:enum (:whole ,@(mapcar #/``(,',_ ,this) ids))))
 
-               `(setf (get ',q-tag 'lisp3dev.algebraic.xdata::|%classdata%|) ',c)
-               `(setf (get ',q-ident 'lisp3dev.algebraic.xdata::|%data_arity%|) ,arity)
-               `(setf (get ',q-ident 'lisp3dev.algebraic.xdata::|%data_tag%|) ',q-tag)
-               `(setf (get ',c 'lisp3dev.algebraic.xdata::|%data_arity%|) ,arity)
-               `(setf (get ',c 'lisp3dev.algebraic.xdata::|%data_tag%|) ',q-tag)
 
                
                (if single
@@ -256,15 +263,15 @@
                           (progn (unless (eql X mask) 
                                    (setf (,(first ids) source) X))
                                  source)
-                          (xtuple ',q-tag 
-                                  (if (eql X mask) 
-                                    (,(first ids) source)
-                                    X)
-                                  ',c)))
+                          (make-instance ',c
+                                         '<data>
+                                         (if (eql X mask) 
+                                           (,(first ids) source)
+                                           X))))
                       (update (warn "update"))
                       (t
                         (assert (and ',c (typep X ',(ensure-car (cadr d)))))
-                        (xtuple ',q-tag X ',c))))
+                        (make-instance ',c '<data> X))))
                  ;; arity > 1の場合
                  `(defun ,c (,@ids &key source (mask '|invalid|) update)
                     (cond 
@@ -280,31 +287,31 @@
                                                 (setf (,_ source) ,_))
                                            ids)
                                  source)
-                          (xtuple ',q-tag 
-                                  (vector ,@(mapcar #/`(if (eql ,_ mask) 
-                                                         (,_ source)
-                                                         ,_)
-                                                    ids))
-                                  ',c)))
+                          (make-instance ',c
+                                         '<data>
+                                         (vector ,@(mapcar #/`(if (eql ,_ mask) 
+                                                                (,_ source)
+                                                                ,_)
+                                                           ids)))))
                       (update (warn "update"))
                       (t
                         (assert (and ',c
                                      ,@(mapcar (lambda (id d)
                                                  `(typep ,id ',(ensure-car d)))
                                                ids (cdr d))))
-                        (xtuple ',q-tag (vector ,@ids) ',c)))))
+                        (make-instance ',c '<data> (vector ,@ids))))))
 
                `(defmethod copy-data ((data ,c) &optional recursive?)
-                  (xtuple ',q-tag
-                          ,(if single
-                             '(copy-data (xtuple-snd data) recursive?)
-                             '(<copy-data-for-sv> (xtuple-snd data) recursive?))
-                          ',c)))
+                  (make-instance ',c
+                                 '<data>
+                                 ,(if single
+                                    '(copy-data (xsnd data) recursive?)
+                                    '(<copy-data-for-sv> (xsnd data) recursive?)))))
 
           (when single
             (add
              `(defmethod reliftable-p ((a ,c)) (declare (ignore a)) t)
-             `(defmethod relift ((a ,c) f) (,c (funcall f (xtuple-snd a))))
+             `(defmethod relift ((a ,c) f) (,c (funcall f (xsnd a))))
              ))
                  
           )))

@@ -34,5 +34,5 @@
 
 ;; for DEBUG
 
-;; (defparameter *ignore-testing* nil) 
+ (defparameter *ignore-testing* nil) 
 

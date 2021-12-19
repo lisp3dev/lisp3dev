@@ -8,8 +8,12 @@
 
 (lisp3dev.base:define-package :lisp3dev.algebraic.core ()
   (:use :cl :lisp3dev.base)
-  (:import/export :lisp3dev.algebraic.xdata)
+  ;(:import/export :lisp3dev.algebraic.xdata)
   (:export
+
+   #:xtuple #:xtuple* #:xtuple-p
+   #:xfst #:xsnd
+   #:xdata #:xdata-p
 
    #:applicable
    #:applied #:applied* #:rapplied #:rapplied*
@@ -41,8 +45,10 @@
    #:maybe #:just #:nothing
    #:either #:left #:right
 
-   #:*tuple-max*
-   #:p3 #:p4 #:p5 #:p6 #:p7 #:p8 #:p9 #:p10 #:p11 #:p12 #:p13 #:p14
+   #:*tuple-max* #:*tuple-class-names*
+   #:tuple
+   #:p0 #:p1 #:p2 #:p3 #:p4 #:p5 #:p6 #:p7 #:p8 #:p9 #:p10 #:p11 #:p12 #:p13 #:p14
    #:p15 #:p16 #:p17 #:p18 #:p19 #:p20
+   #:fst #:snd
    ))
 

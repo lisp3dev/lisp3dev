@@ -8,7 +8,7 @@
 
 (lisp3dev.base:define-package :lisp3dev.algebraic ()
   (:use :cl :lisp3dev.base)
-  (:import/export :lisp3dev.algebraic.core :lisp3dev.algebraic.xdata)
+  (:import/export :lisp3dev.algebraic.core)
   (:export
    
    ))

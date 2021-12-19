@@ -17,24 +17,57 @@
 
 
 ;; Tuples P3 ... P20
-(eval-when (:compile-toplevel :load-toplevel)
-  (defvar *tuple-max* 20))
+;; (eval-when (:compile-toplevel :load-toplevel)
+;;   (defvar *tuple-max* 20))
 
-(eval-when (:compile-toplevel)
-  (defmacro <define-tuples> ()
-    (let (data-definitions
-          conversion-list)
-      (do ((i 3 (1+ i))
-           (ts (list t t t) (cons t ts)))
-          ((> i *tuple-max*) `(eval-when (:load-toplevel)
-                                (defvar %tuple-conversion-vector% #(nil nil nil ,@(nreverse conversion-list)))
-                                ,@data-definitions))
-        (let ((ident (intern (format nil "P~A" i))))
-          (push ident conversion-list)
-          (push `(define-global-data ,ident (,ident ,@ts))
-                data-definitions))))))
+;; (eval-when (:compile-toplevel)
+;;   (defmacro <define-tuples> ()
+;;     (let (data-definitions
+;;           conversion-list)
+;;       (do ((i 3 (1+ i))
+;;            (ts (list t t t) (cons t ts)))
+;;           ((> i *tuple-max*) `(eval-when (:load-toplevel)
+;;                                 (defvar %tuple-conversion-vector% #(nil nil nil ,@(nreverse conversion-list)))
+;;                                 ,@data-definitions))
+;;         (let ((ident (intern (format nil "P~A" i))))
+;;           (push ident conversion-list)
+;;           (push `(define-global-data ,ident (,ident ,@ts))
+;;                 data-definitions))))))
 
-(<define-tuples>)
+;; (<define-tuples>)
+
+
+(defvar %tuple-max% 20)
+(defvar %tuple-class-names% '(p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10
+                              p11 p12 p13 p14 p15 p16 p17 p18 p19 p20))
+                        
+
+(define-global-data tuple p0
+  (p1 t)
+  (p2 (t fst) (t snd))
+  (p3 t t t)
+  (p4 t t t t)
+  (p5 t t t t t)
+  (p6 t t t t t t)
+  (p7 t t t t t t t)
+  (p8 t t t t t t t t)
+  (p9 t t t t t t t t t)
+  (p10 t t t t t t t t t t)
+  (p11 t t t t t t t t t t t)
+  (p12 t t t t t t t t t t t t) 
+  (p13 t t t t t t t t t t t t t) 
+  (p14 t t t t t t t t t t t t t t) 
+  (p15 t t t t t t t t t t t t t t t) 
+  (p16 t t t t t t t t t t t t t t t t) 
+  (p17 t t t t t t t t t t t t t t t t t) 
+  (p18 t t t t t t t t t t t t t t t t t t) 
+  (p19 t t t t t t t t t t t t t t t t t t t) 
+  (p20 t t t t t t t t t t t t t t t t t t t t))
+
+
+;; [2021-12-14] todo
+;(DEFMETHOD PRINT-OBJECT ((x tuple) stream)
+;  (FORMAT stream "(@~A ~W ~W)" (SLOT-VALUE x 'fst) (SLOT-VALUE x 'snd)))
 
 #Comment
 
