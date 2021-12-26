@@ -192,53 +192,122 @@
                ,@proxy-pairs)
            (lambda (,@vars ,@extra-param) ,call-form))))))
 
-(defmacro applied (function-designator arity &rest prescribed-args)
-  (<make-code/applied> function-designator arity prescribed-args nil))
+(defun <<error/applied>> (arity n)
+  (error "APPLIED/APPLIED*/RAPPLIED/RAPPLIED*'ed partial function needs ~A arguments but ~A was given." arity n))
+  
+(defun <<applied>> (function-designator arity prescribed-args reversed-application? allow-rest?)
+  (lambda (&rest args)
+    (let ((n (length args)))
+      (cond ((eql n arity)
+              (if reversed-application?
+                (apply function-designator (nconc args prescribed-args))
+                (apply function-designator (append prescribed-args args))))              
+            ((and allow-rest? (>= n arity))
+              (if reversed-application?
+                (let ((rest (prog1 (nthcdr arity args)
+                              (setf (cdr (nthcdr (1- arity) args)) nil))))
+                                   
+                  (apply function-designator (nconc args prescribed-args rest)))
+                (apply function-designator (append prescribed-args args))))
+            (t (<<error/applied>> arity n))))))
 
-(defmacro applied* (function-designator arity &rest prescribed-args)
-  (<make-code/applied> function-designator arity prescribed-args nil (memoized (gensym))))
 
-(defmacro rapplied (function-designator arity &rest prescribed-args)
-  (<make-code/applied> function-designator arity prescribed-args t))
+(defun applied (function-designator arity &rest prescribed-args)
+  (<<applied>> function-designator arity prescribed-args nil nil))
 
-(defmacro rapplied* (function-designator arity &rest prescribed-args)
-  (<make-code/applied> function-designator arity prescribed-args t (memoized (gensym))))
+(define-compiler-macro applied (function-designator arity &rest prescribed-args)
+  (if (integerp arity)
+    (<make-code/applied> function-designator arity prescribed-args nil)
+    `(<<applied>> ,function-designator ,arity (list ,@prescribed-args) nil nil)))
+
+(defun applied* (function-designator arity &rest prescribed-args)
+  (<<applied>> function-designator arity prescribed-args nil t))
+
+(define-compiler-macro applied* (function-designator arity &rest prescribed-args)
+  (if (integerp arity)
+    (<make-code/applied> function-designator arity prescribed-args nil (memoized (gensym)))
+    `(<<applied>> ,function-designator ,arity (list ,@prescribed-args) nil t)))
+  
+
+(defun rapplied (function-designator arity &rest prescribed-args)
+  (<<applied>> function-designator arity prescribed-args t nil))
+
+(define-compiler-macro rapplied (function-designator arity &rest prescribed-args)
+  (if (integerp arity)
+    (<make-code/applied> function-designator arity prescribed-args t)
+    `(<<applied>> ,function-designator ,arity (list ,@prescribed-args) t nil)))
+
+(defun rapplied* (function-designator arity &rest prescribed-args)
+  (<<applied>> function-designator arity prescribed-args t t))
+
+(define-compiler-macro rapplied* (function-designator arity &rest prescribed-args)
+  (if (integerp arity)
+    (<make-code/applied> function-designator arity prescribed-args t (memoized (gensym)))
+    `(<<applied>> ,function-designator ,arity (list ,@prescribed-args) t t)))
+
 
 
 ;;;;;; PURE ;;;;;;;;
 
 
 
-(defun <<pure>> (f arity pre-args)
-  (declare (optimize (speed 3) (space 0) (safety 0) (debug 0)))
-  (declare (type integer arity)
-           (type function f)
-           (type list pre-args))
+(defun <<pure>> (f arity pre-args allow-rest?)
   (let ((cnt arity))
     (lambda (x &rest xs)
-      (let ((n (1+ (list-length xs)))
-            (args (append pre-args (cons x xs))))
-        (cond ((eql cnt n) (apply f args))
-              ((< n cnt) (<<pure>> f (- cnt n) args))
-              (t (error "pure")))))))
+      (let* ((xs (cons x xs))
+             (n (list-length xs))
+             (args (append pre-args xs)))
+        (cond ((or (eql cnt n)
+                   (and allow-rest? (> n cnt)))
+                (apply f args))
+              ((< n cnt) (<<pure>> f (- cnt n) args allow-rest?))
+              (t (error "pure-1")))))))
+
+'(defun <<rpure>> (f arity pre-args allow-rest?)
+  (if (null pre-args)
+    (<<pure>> f arity nil allow-rest?)
+    (let ((cnt arity))
+      (lambda (x &rest xs)
+        (let* ((xs (cons x xs))
+               (n (list-length xs))
+               (args (append pre-args xs)))
+          (cond ((or (eql cnt n)
+                     (and allow-rest? (> n cnt)))
+                  (apply f args))
+                ((< n cnt) (<<pure>> f (- cnt n) args allow-rest?))
+                (t (error "pure-2 ~A" (list n cnt args allow-rest?)))))))))
 
 
 @inline
-(defun <pure> (f arity prescribed-arguments)
-  (<<pure>> (ensure-function f) arity prescribed-arguments))
+(defun <pure> (f arity prescribed-arguments &optional allow-rest?)
+  (assert (and 'pure (positive-integer-p arity)))
+  (<<pure>> (ensure-function f) arity prescribed-arguments allow-rest?))
 
 (defun applied.. (function-designator arity &rest prescribed-arguments)
-  (assert (and 'pure (positive-integer-p arity)))
   (<pure> function-designator arity prescribed-arguments))
+
+(defun applied*.. (function-designator arity &rest prescribed-arguments)
+  (<pure> function-designator arity prescribed-arguments t))
 
 ;; [2021-12-13] TODO 効率のよいものに
 
 (defun rapplied.. (function-designator arity &rest prescribed-arguments)
-  (assert (and 'pure (positive-integer-p arity)))
   (let ((fn (ensure-function function-designator)))
     (<pure> (lambda (&rest args)
               (apply fn (nconc args prescribed-arguments)))
-            arity prescribed-arguments)))
+            arity nil)))
+
+(defun rapplied*.. (function-designator arity &rest prescribed-arguments)
+  (let ((fn (ensure-function function-designator)))
+    (<pure> (lambda (&rest args)
+              (if (eql arity (length args))
+                (apply fn (nconc args prescribed-arguments))
+                (let ((rest (prog1 (nthcdr arity args)
+                              (setf (cdr (nthcdr (1- arity) args)) nil))))
+                  (apply fn (nconc args prescribed-arguments rest)))))
+
+            arity nil t)))
+
 
 
 
@@ -250,6 +319,35 @@
         (t (list '<pure> f arity nil))))
 
 
+#Verify
+(and (equal (funcall (applied #'list 3 0 1) 2 3 4)
+            '(0 1 2 3 4))
+     (equal (funcall (applied* #'list 3 0 1) 2 3 4)
+            '(0 1 2 3 4))
+     (equal (funcall (applied* #'list 3 0 1) 2 3 4 5 6)
+            '(0 1 2 3 4 5 6))
+     (equal (funcall (rapplied 'list 3 0 1) 2 3 4)
+            '(2 3 4 0 1))
+     (equal (funcall (rapplied* 'list 3 0 1) 2 3 4)
+            '(2 3 4 0 1))
+     (equal (funcall (rapplied* 'list 3 0 1) 2 3 4 5 6)
+            '(2 3 4 0 1 5 6)))
+
+#Verify
+(and (equal (funcall (applied.. #'list 3 0 1) 2 3 4)
+            '(0 1 2 3 4))
+     (equal (funcall (funcall (applied.. #'list 3 0 1) 2 3) 4)
+            '(0 1 2 3 4))
+     (equal (funcall (funcall (applied*.. #'list 3 0 1) 2 3) 4)
+            '(0 1 2 3 4))
+     (equal (funcall (rapplied.. #'list 3 0 1) 2 3 4)
+            '(2 3 4 0 1))
+     (equal (funcall (funcall (rapplied.. #'list 3 0 1) 2 3) 4)
+            '(2 3 4 0 1))
+     (equal (funcall (funcall (rapplied*.. #'list 3 0 1) 2 3) 4)
+            '(2 3 4 0 1))
+     (equal (funcall (funcall (rapplied*.. #'list 3 0 1) 2 3) 4 5 6)
+            '(2 3 4 0 1 5 6)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #Comment

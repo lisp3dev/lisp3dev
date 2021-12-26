@@ -20,7 +20,7 @@
    #:applicate
 
    ;; TODO [2021-12-13]
-   #:applied.. #:rapplied..
+   #:applied.. #:applied*.. #:rapplied.. #:rapplied*..
 
    #:defun.. #:lambda.. #:named-lambda.. #:flet.. #:labels..
    #:lambda-bind.. #:lambda/bind..
